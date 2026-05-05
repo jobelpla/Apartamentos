@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="MisApartamentos"/>
+<meta name="theme-color" content="#1a1a2e"/>
+<title>Mis Apartamentos</title>
+<link rel="manifest" id="manifest-placeholder"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f1a;
+  --surface:#1a1a2e;
+  --surface2:#22223a;
+  --surface3:#2a2a45;
+  --border:#333358;
+  --text:#f0eefc;
+  --text2:#9d9bc0;
+  --text3:#5c5a7a;
+  --accent:#7f77dd;
+  --accent2:#a49ef5;
+  --green:#1d9e75;
+  --coral:#d85a30;
+  --amber:#ba7517;
+  --pink:#d4537e;
+  --blue:#378add;
+  --lime:#639922;
+  --font-display:'Fraunces',serif;
+  --font-mono:'DM Mono',monospace;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:10}
+.header h1{font-family:var(--font-display);font-size:20px;font-weight:500;letter-spacing:-0.5px;color:var(--text)}
+.header-actions{display:flex;gap:8px}
+
+/* Bottom nav */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;height:60px;flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text3);font-size:10px;font-family:var(--font-mono);cursor:pointer;border:none;background:none;transition:color .2s}
+.nav-btn.active{color:var(--accent2)}
+.nav-btn svg{width:20px;height:20px}
+
+/* Main content */
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.card-title{font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px}
+.stat-val{font-family:var(--font-display);font-size:26px;font-weight:300;color:var(--text);line-height:1}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
+
+/* Gantt */
+.gantt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px}
+.gantt-table{border-collapse:collapse;table-layout:fixed}
+.gantt-apt-cell{position:sticky;left:0;z-index:2;background:var(--surface);padding:5px 8px;white-space:nowrap;font-size:11px;font-weight:500;color:var(--text);border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-width:100px}
+.gantt-head-cell{padding:4px 0;text-align:center;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);border-left:1px solid var(--border);background:var(--surface2);min-width:26px;width:26px}
+.gantt-head-cell.today{color:var(--accent2);font-weight:500}
+.gantt-day-cell{padding:0;border-bottom:1px solid var(--border);border-left:1px solid var(--border);position:relative;height:36px;background:var(--surface)}
+.gantt-day-cell.weekend{background:var(--bg)}
+.gantt-day-cell.today-col{background:rgba(127,119,221,0.07)}
+
+/* Reserva bar */
+.res-bar{position:absolute;inset:4px 0;display:flex;align-items:center;padding-left:5px;overflow:hidden}
+.res-bar-label{font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--font-mono)}
+.badge-confirmada{background:#0f2e21;color:#3dba89;border:1px solid #1d9e75}
+.badge-pendiente{background:#2e1f00;color:#e09020;border:1px solid #ba7517}
+.badge-cancelada{background:#2e0f0f;color:#e05555;border:1px solid #d04040}
+.badge-especial{background:#1e1a40;color:#a49ef5;border:1px solid #7f77dd}
+
+/* Reservation list item */
+.res-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:6px}
+.res-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.res-item-name{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text)}
+.res-item-meta{font-size:11px;color:var(--text2)}
+.res-item-actions{display:flex;gap:6px;flex-wrap:wrap}
+.res-note{font-size:11px;color:var(--text3);font-style:italic;padding-left:2px}
+
+/* Apt item */
+.apt-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.apt-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Buttons */
+button{font-family:var(--font-mono);cursor:pointer;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface3);color:var(--text);font-size:12px;padding:6px 12px;transition:all .15s;-webkit-appearance:none}
+button:active{transform:scale(0.97);opacity:.85}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-danger{background:transparent;border-color:#d04040;color:#e05555}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-icon{padding:6px 10px;font-size:16px;line-height:1}
+
+/* Inputs */
+input,select,textarea{font-family:var(--font-mono);font-size:13px;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;width:100%;outline:none;-webkit-appearance:none;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
+textarea{resize:vertical;min-height:60px}
+label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px;letter-spacing:.3px}
+.field{margin-bottom:12px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);border-bottom:none;width:100%;max-height:90vh;overflow-y:auto;padding:20px 16px calc(20px + env(safe-area-inset-bottom));animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:var(--font-display);font-size:18px;font-weight:500;margin-bottom:16px;color:var(--text)}
+
+/* Email preview */
+.email-preview{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:11px;color:var(--text2);white-space:pre-wrap;line-height:1.7;margin:10px 0;max-height:200px;overflow-y:auto}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.filter-tabs::-webkit-scrollbar{display:none}
+.filter-tab{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s}
+.filter-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Month nav */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.month-label{font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--text)}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Confirm dialog */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-overlay.active{display:flex}
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:100%;max-width:320px}
+.confirm-box p{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.confirm-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* PWA install banner */
+.install-banner{background:linear-gradient(135deg,var(--accent),#5a52cc);border-radius:var(--radius-sm);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.install-banner p{font-size:12px;color:#fff;line-height:1.4}
+.install-banner button{background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.3);color:#fff;white-space:nowrap;flex-shrink:0}
+
+/* Color dots for apt selector */
+.color-opt{display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>🏠 Mis Apartamentos</h1>
+  <div class="header-actions">
+    <button class="btn-icon" onclick="exportarPDF()" title="Exportar PDF semana">📄</button>
+    <button class="btn-icon" onclick="openModal('modal-res')" title="Nueva reserva">＋</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main" id="main-content">
+  <!-- Install banner (shown if installable) -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <p>📲 Instala esta app en tu pantalla de inicio para acceso rápido</p>
+    <button onclick="instalarPWA()">Instalar</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats"></div>
+
+  <!-- Gantt -->
+  <div class="card" id="section-gantt">
+    <div class="month-nav">
+      <button class="btn-icon" onclick="prevMes()">‹</button>
+      <span class="month-label" id="mes-label"></span>
+      <button class="btn-icon" onclick="nextMes()">›</button>
+    </div>
+    <div class="gantt-wrap">
+      <table class="gantt-table" id="gantt"></table>
+    </div>
+  </div>
+
+  <!-- Reservas -->
+  <div id="section-reservas" style="display:flex;flex-direction:column;gap:10px">
+    <div class="filter-tabs" id="filtros"></div>
+    <div id="lista-reservas"></div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-inicio" onclick="setTab('inicio')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Inicio
+  </button>
+  <button class="nav-btn" id="nav-reservas" onclick="setTab('reservas')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Reservas
+  </button>
+  <button class="nav-btn" id="nav-apts" onclick="setTab('apts')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg>
+    Aptos
+  </button>
+</div>
+
+<!-- Modal: Nueva/Editar Reserva -->
+<div class="modal-overlay" id="modal-res">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-res-titulo">Nueva reserva</div>
+    <input type="hidden" id="res-edit-id"/>
+    <div class="field"><label>Apartamento</label><select id="res-apt"></select></div>
+    <div class="field"><label>Huésped</label><input id="res-huesped" placeholder="Nombre completo"/></div>
+    <div class="field"><label>Email del huésped</label><input type="email" id="res-email" placeholder="huesped@email.com" inputmode="email"/></div>
+    <div class="field"><label>Fecha entrada</label><input type="date" id="res-entrada"/></div>
+    <div class="field"><label>Fecha salida</label><input type="date" id="res-salida"/></div>
+    <div class="field"><label>Precio total (€)</label><input type="number" id="res-precio" placeholder="0" inputmode="decimal"/></div>
+    <div class="field"><label>Estado</label>
+      <select id="res-estado">
+        <option value="confirmada">✅ Confirmada</option>
+        <option value="pendiente">⏳ Pendiente</option>
+        <option value="cancelada">❌ Cancelada</option>
+        <option value="especial">⭐ Especial</option>
+      </select>
+    </div>
+    <div class="field"><label>Notas</label><textarea id="res-notas" placeholder="Observaciones, peticiones especiales..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button style="flex:1" onclick="closeModal('modal-res')">Cancelar</button>
+      <button class="btn-primary" style="flex:1" onclick="guardarReserva()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Gestión Apartamentos -->
+<div class="modal-overlay" id="modal-apts">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Apartamentos</div>
+    <div id="apt-lista"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-family:var(--font-mono)">Añadir nuevo apartamento</p>
+    <div class="field"><label>Nombre</label><input id="apt-nombre" placeholder="Ej: Apto Centro A"/></div>
+    <div class="field"><label>Dirección</label><input id="apt-dir" placeholder="Ej: Calle Mayor 12, 2ºA"/></div>
+    <div class="field"><label>Color</label>
+      <select id="apt-color">
+        <option value="#7F77DD">● Morado</option>
+        <option value="#1D9E75">● Verde</option>
+        <option value="#D85A30">● Coral</option>
+        <option value="#378ADD">● Azul</option>
+        <option value="#BA7517">● Ámbar</option>
+        <option value="#D4537E">● Rosa</option>
+        <option value="#639922">● Lima</option>
+        <option value="#085041">● Bosque</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="flex:1" onclick="closeModal('modal-apts')">Cerrar</button>
+      <button class="btn-primary" style="flex:1" onclick="guardarApt()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmación email -->
+<div class="modal-overlay" id="modal-email">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Enviar confirmación</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px" id="email-para"></p>
+    <div class="email-preview" id="email-preview"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button onclick="closeModal('modal-email')" style="flex:1">Cerrar</button>
+      <button onclick="copiarEmail()" style="flex:1">📋 Copiar</button>
+      <button class="btn-primary" onclick="abrirMailto()" style="flex:1" id="btn-mailto">✉ Abrir correo</button>
+    </div>
+    <p style="font-size:11px;color:var(--green);margin-top:8px;display:none" id="copy-ok">✓ Copiado</p>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="modal-title" style="font-size:16px;margin-bottom:8px" id="confirm-title">¿Confirmar acción?</div>
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button onclick="document.getElementById('confirm-overlay').classList.remove('active')">Cancelar</button>
+      <button class="btn-danger" id="confirm-ok-btn">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Guardado ✓</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const SK = 'apt-pwa-v1';
+let apts = [
+  {id:1,nombre:"Apto Centro A",color:"#7F77DD",dir:"Calle Mayor 12, 2ºA"},
+  {id:2,nombre:"Apto Mar B",color:"#1D9E75",dir:"Paseo Marítimo 5, 1ºB"},
+  {id:3,nombre:"Apto Jardín C",color:"#D85A30",dir:"Av. del Jardín 8, Bajo"},
+];
+let reservas = [
+  {id:1,aptId:1,huesped:"María García",email:"maria@email.com",entrada:"2026-05-01",salida:"2026-05-07",precio:420,estado:"confirmada",notas:"Llegada tardía, llave en buzón"},
+  {id:2,aptId:2,huesped:"Juan López",email:"juan@email.com",entrada:"2026-05-10",salida:"2026-05-15",precio:375,estado:"pendiente",notas:""},
+  {id:3,aptId:1,huesped:"Anna Müller",email:"",entrada:"2026-05-20",salida:"2026-05-25",precio:390,estado:"confirmada",notas:""},
+  {id:4,aptId:3,huesped:"Carlos Ruiz",email:"carlos@email.com",entrada:"2026-05-05",salida:"2026-05-12",precio:560,estado:"especial",notas:"Cliente VIP"},
+  {id:5,aptId:3,huesped:"Sophie Blanc",email:"",entrada:"2026-05-18",salida:"2026-05-28",precio:700,estado:"cancelada",notas:"Canceló por enfermedad"},
+];
+let mesActual = new Date(2026,4,1);
+let nextId = 20;
+let filtro = 'todas';
+let currentTab = 'inicio';
+let currentMailto = '';
+let currentEmailText = '';
+let pendingDelAptId = null;
+let deferredPrompt = null;
+
+// ─── STORAGE ────────────────────────────────────────────────────────────────
+function guardar() {
+  try { localStorage.setItem(SK, JSON.stringify({apts, reservas, nextId})); showToast('Guardado ✓'); } catch(e){}
+}
+function cargar() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SK)||'null');
+    if(d){ apts=d.apts||apts; reservas=d.reservas||reservas; nextId=d.nextId||nextId; }
+  } catch(e){}
+}
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────
+const DIAS = ['D','L','M','X','J','V','S'];
+const ESTADOS = {
+  confirmada:{label:'Confirmada',cls:'badge-confirmada'},
+  pendiente:  {label:'Pendiente', cls:'badge-pendiente'},
+  cancelada:  {label:'Cancelada', cls:'badge-cancelada'},
+  especial:   {label:'Especial',  cls:'badge-especial'},
+};
+function fmt(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+function toStr(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function diasEnMes(y,m){return new Date(y,m+1,0).getDate();}
+function badge(e){const s=ESTADOS[e]||ESTADOS.confirmada;return`<span class="badge ${s.cls}">${s.label}</span>`;}
+function showToast(msg='Guardado ✓'){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  currentTab = tab;
+  ['inicio','reservas','apts'].forEach(t => {
+    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='apts') { openModal('modal-apts'); renderAptLista(); }
+  render();
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  renderStats();
+  renderGantt();
+  renderFiltros();
+  renderLista();
+  const lbl = mesActual.toLocaleString('es-ES',{month:'long',year:'numeric'});
+  document.getElementById('mes-label').textContent = lbl.charAt(0).toUpperCase()+lbl.slice(1);
+}
+
+function renderStats() {
+  const hoy = new Date();
+  const activas = reservas.filter(r=>r.estado!=='cancelada'&&new Date(r.entrada)<=hoy&&new Date(r.salida)>hoy).length;
+  const y=mesActual.getFullYear(),m=mesActual.getMonth();
+  const mStr=`${y}-${String(m+1).padStart(2,'0')}`;
+  const ingM=reservas.filter(r=>r.estado!=='cancelada'&&(r.entrada.startsWith(mStr)||r.salida.startsWith(mStr))).reduce((s,r)=>s+Number(r.precio),0);
+  const pend=reservas.filter(r=>r.estado==='pendiente').length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-val">${apts.length}</div><div class="stat-lbl">Aptos</div></div>
+    <div class="stat"><div class="stat-val">${activas}</div><div class="stat-lbl">Activas hoy</div></div>
+    <div class="stat"><div class="stat-val" style="color:${pend>0?'#e09020':'var(--text)'}">${pend}</div><div class="stat-lbl">Pendientes</div></div>
+    <div class="stat"><div class="stat-val" style="font-size:20px">${ingM.toLocaleString('es-ES')}€</div><div class="stat-lbl">Ingresos mes</div></div>
+  `;
+}
+
+function renderGantt() {
+  const y=mesActual.getFullYear(),m=mesActual.getMonth(),nd=diasEnMes(y,m);
+  const hoyStr=toStr(new Date());
+  const table=document.getElementById('gantt');
+  table.innerHTML='';
+  // Head row
+  const thead=table.createTHead(),trH=thead.insertRow();
+  const thA=document.createElement('th');
+  thA.className='gantt-apt-cell';thA.style.background='var(--surface2)';thA.style.color='var(--text3)';thA.style.fontSize='10px';
+  thA.textContent='APT';trH.appendChild(thA);
+  for(let d=1;d<=nd;d++){
+    const date=new Date(y,m,d),dStr=toStr(date);
+    const isH=dStr===hoyStr;
+    const th=document.createElement('th');
+    th.className='gantt-head-cell'+(isH?' today':'');
+    th.innerHTML=`<div>${d}</div><div style="font-size:8px;opacity:.6">${DIAS[date.getDay()]}</div>`;
+    trH.appendChild(th);
+  }
+  // Rows
+  const tbody=table.createTBody();
+  apts.forEach(apt=>{
+    const tr=tbody.insertRow();
+    const tdN=tr.insertCell();
+    tdN.className='gantt-apt-cell';
+    tdN.innerHTML=`<div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${apt.color};flex-shrink:0"></div><span style="max-width:80px;overflow:hidden;text-overflow:ellipsis">${apt.nombre}</span></div>`;
+    const aptRes=reservas.filter(r=>r.aptId===apt.id);
+    for(let d=1;d<=nd;d++){
+      const dStr=toStr(new Date(y,m,d)),date=new Date(y,m,d);
+      const isW=date.getDay()===0||date.getDay()===6,isH=dStr===hoyStr;
+      const res=aptRes.find(r=>dStr>=r.entrada&&dStr<r.salida);
+      const td=tr.insertCell();
+      td.className='gantt-day-cell'+(isW?' weekend':'')+(isH?' today-col':'');
+      if(res){
+        const endDay=toStr(new Date(new Date(res.salida).getTime()-86400000));
+        const isStart=dStr===res.entrada,isEnd=dStr===endDay;
+        const canceled=res.estado==='cancelada',pend=res.estado==='pendiente';
+        const bar=document.createElement('div');
+        bar.className='res-bar';
+        const col=canceled?'#3a1a1a':apt.color;
+        bar.style.cssText=`background:${col};opacity:${canceled?.5:pend?.6:.85};border-radius:${isStart&&isEnd?'5px':isStart?'5px 0 0 5px':isEnd?'0 5px 5px 0':'0'};left:${isStart?'3px':'0'};right:${isEnd?'3px':'0'};border:${res.estado==='especial'?'1.5px solid #FAC775':'none'};border-left:${canceled?`2px dashed #d04040`:isStart?'none':'none'}`;
+        if(isStart){
+          const lbl=document.createElement('span');
+          lbl.className='res-bar-label';
+          lbl.textContent=res.huesped.split(' ')[0];
+          bar.appendChild(lbl);
+        }
+        bar.onclick=()=>openReservaModal(res.id);
+        td.appendChild(bar);
+      }
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function renderFiltros(){
+  const tabs=['todas','confirmada','pendiente','cancelada','especial'];
+  const labels={todas:'Todas',confirmada:'✅ Conf.',pendiente:'⏳ Pend.',cancelada:'❌ Canc.',especial:'⭐ Esp.'};
+  document.getElementById('filtros').innerHTML=tabs.map(t=>`<div class="filter-tab${filtro===t?' active':''}" onclick="setFiltro('${t}')">${labels[t]}</div>`).join('');
+}
+
+function setFiltro(f){filtro=f;renderFiltros();renderLista();}
+
+function renderLista(){
+  let fr=reservas.slice().sort((a,b)=>a.entrada.localeCompare(b.entrada));
+  if(filtro!=='todas')fr=fr.filter(r=>r.estado===filtro);
+  const el=document.getElementById('lista-reservas');
+  if(!fr.length){el.innerHTML=`<p style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Sin reservas${filtro!=='todas'?' con este estado':''}.</p>`;return;}
+  el.innerHTML=fr.map(r=>{
+    const apt=apts.find(a=>a.id===r.aptId)||{nombre:'?',color:'#888'};
+    const noches=Math.round((new Date(r.salida)-new Date(r.entrada))/86400000);
+    return `<div class="res-item">
+      <div class="res-item-top">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <div style="width:8px;height:8px;border-radius:50%;background:${apt.color};flex-shrink:0"></div>
+          <div style="min-width:0">
+            <div class="res-item-name">${r.huesped}</div>
+            <div class="res-item-meta">${apt.nombre} · ${noches}n · ${fmt(r.entrada)} → ${fmt(r.salida)}</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${badge(r.estado)}
+          <div style="font-size:14px;font-family:var(--font-display);color:var(--text);margin-top:3px">${Number(r.precio).toLocaleString('es-ES')}€</div>
+        </div>
+      </div>
+      ${r.notas?`<div class="res-note">📝 ${r.notas}</div>`:''}
+      ${r.email?`<div class="res-item-meta">✉ ${r.email}</div>`:''}
+      <div class="res-item-actions">
+        <button class="btn-sm" onclick="openEmailModal(${r.id})">✉ Confirmar</button>
+        <button class="btn-sm" onclick="openReservaModal(${r.id})">Editar</button>
+        <button class="btn-sm btn-danger" onclick="pedirBorrarRes(${r.id})">Borrar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAptLista(){
+  const el=document.getElementById('apt-lista');
+  if(!apts.length){el.innerHTML=`<p style="font-size:12px;color:var(--text3);padding:8px 0">Sin apartamentos aún.</p>`;return;}
+  el.innerHTML=apts.map(a=>{
+    const n=reservas.filter(r=>r.aptId===a.id).length;
+    return `<div class="apt-item">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div class="apt-dot" style="background:${a.color}"></div>
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+          <div style="font-size:11px;color:var(--text3)">${a.dir||'Sin dirección'} · ${n} reserva${n!==1?'s':''}</div>
+        </div>
+      </div>
+      <button class="btn-sm btn-danger" onclick="pedirBorrarApt(${a.id})">Borrar</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── MODALS ─────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');if(id==='modal-apts')setTab('inicio');}
+
+function openReservaModal(editId){
+  const sel=document.getElementById('res-apt');
+  sel.innerHTML=apts.map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('');
+  document.getElementById('res-edit-id').value=editId||'';
+  document.getElementById('modal-res-titulo').textContent=editId?'Editar reserva':'Nueva reserva';
+  if(editId){
+    const r=reservas.find(x=>x.id===editId);
+    if(r){
+      sel.value=r.aptId;
+      document.getElementById('res-huesped').value=r.huesped;
+      document.getElementById('res-email').value=r.email||'';
+      document.getElementById('res-entrada').value=r.entrada;
+      document.getElementById('res-salida').value=r.salida;
+      document.getElementById('res-precio').value=r.precio;
+      document.getElementById('res-estado').value=r.estado||'confirmada';
+      document.getElementById('res-notas').value=r.notas||'';
+    }
+  } else {
+    ['res-huesped','res-email','res-entrada','res-salida','res-precio','res-notas'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('res-estado').value='confirmada';
+  }
+  openModal('modal-res');
+}
+
+// ─── CRUD ───────────────────────────────────────────────────────────────────
+function guardarApt(){
+  const nombre=document.getElementById('apt-nombre').value.trim();if(!nombre)return;
+  const color=document.getElementById('apt-color').value;
+  const dir=document.getElementById('apt-dir').value.trim();
+  apts.push({id:nextId++,nombre,color,dir});
+  document.getElementById('apt-nombre').value='';document.getElementById('apt-dir').value='';
+  guardar();renderAptLista();render();showToast('Apartamento añadido');
+}
+
+function guardarReserva(){
+  const editId=document.getElementById('res-edit-id').value;
+  const aptId=Number(document.getElementById('res-apt').value);
+  const huesped=document.getElementById('res-huesped').value.trim();
+  const email=document.getElementById('res-email').value.trim();
+  const entrada=document.getElementById('res-entrada').value;
+  const salida=document.getElementById('res-salida').value;
+  const precio=Number(document.getElementById('res-precio').value)||0;
+  const estado=document.getElementById('res-estado').value;
+  const notas=document.getElementById('res-notas').value.trim();
+  if(!huesped||!entrada||!salida||entrada>=salida){showToast('Revisa los datos ⚠');return;}
+  if(editId){
+    const idx=reservas.findIndex(r=>r.id===Number(editId));
+    if(idx>=0)reservas[idx]={...reservas[idx],aptId,huesped,email,entrada,salida,precio,estado,notas};
+  } else {
+    reservas.push({id:nextId++,aptId,huesped,email,entrada,salida,precio,estado,notas});
+  }
+  closeModal('modal-res');guardar();render();
+}
+
+function pedirBorrarRes(id){
+  const r=reservas.find(x=>x.id===id);if(!r)return;
+  document.getElementById('confirm-title').textContent='¿Borrar reserva?';
+  document.getElementById('confirm-msg').textContent=`¿Seguro que quieres borrar la reserva de ${r.huesped}?`;
+  document.getElementById('confirm-ok-btn').onclick=()=>{
+    reservas=reservas.filter(x=>x.id!==id);
+    document.getElementById('confirm-overlay').classList.remove('active');
+    guardar();render();showToast('Reserva eliminada');
+  };
+  document.getElementById('confirm-overlay').classList.add('active');
+}
+
+function pedirBorrarApt(id){
+  const apt=apts.find(a=>a.id===id);if(!apt)return;
+  const nRes=reservas.filter(r=>r.aptId===id).length;
+  document.getElementById('confirm-title').textContent='¿Borrar apartamento?';
+  document.getElementById('confirm-msg').innerHTML=`¿Seguro que quieres borrar <strong style="color:var(--text)">${apt.nombre}</strong>?${nRes>0?` Esto también eliminará sus <strong style="color:var(--text)">${nRes} reserva${nRes!==1?'s':''}</strong>.`:''}`;
+  document.getElementById('confirm-ok-btn').onclick=()=>{
+    reservas=reservas.filter(r=>r.aptId!==id);
+    apts=apts.filter(a=>a.id!==id);
+    document.getElementById('confirm-overlay').classList.remove('active');
+    guardar();renderAptLista();render();showToast('Apartamento eliminado');
+  };
+  document.getElementById('confirm-overlay').classList.add('active');
+}
+
+// ─── EMAIL ──────────────────────────────────────────────────────────────────
+function generarTexto(r){
+  const apt=apts.find(a=>a.id===r.aptId)||{nombre:'?',dir:''};
+  const noches=Math.round((new Date(r.salida)-new Date(r.entrada))/86400000);
+  const nombre=r.huesped.split(' ')[0];
+  return `Estimado/a ${nombre},\n\nLe confirmamos su reserva en ${apt.nombre}.\n\n  Apartamento: ${apt.nombre}${apt.dir?`\n  Dirección:    ${apt.dir}`:''}\n  Entrada:      ${fmt(r.entrada)}\n  Salida:       ${fmt(r.salida)}\n  Duración:     ${noches} noche${noches!==1?'s':''}\n  Precio total: ${Number(r.precio).toLocaleString('es-ES')} €${r.notas?`\n  Notas:        ${r.notas}`:''}\n\nPara cualquier consulta no dude en contactarnos.\n\n¡Le esperamos!`;
+}
+
+function openEmailModal(id){
+  const r=reservas.find(x=>x.id===id);if(!r)return;
+  const apt=apts.find(a=>a.id===r.aptId)||{nombre:'?'};
+  currentEmailText=generarTexto(r);
+  const asunto=encodeURIComponent(`Confirmación de reserva – ${apt.nombre} (${fmt(r.entrada)} – ${fmt(r.salida)})`);
+  currentMailto=`mailto:${r.email||''}?subject=${asunto}&body=${encodeURIComponent(currentEmailText)}`;
+  document.getElementById('email-para').textContent=`Para: ${r.huesped}${r.email?' <'+r.email+'>':' (sin email)'}`;
+  document.getElementById('email-preview').textContent=currentEmailText;
+  document.getElementById('btn-mailto').style.opacity=r.email?'1':'0.4';
+  document.getElementById('copy-ok').style.display='none';
+  openModal('modal-email');
+}
+
+function copiarEmail(){
+  navigator.clipboard.writeText(currentEmailText).then(()=>{
+    const ok=document.getElementById('copy-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',2500);
+  }).catch(()=>showToast('No se pudo copiar'));
+}
+function abrirMailto(){if(currentMailto)window.location.href=currentMailto;}
+
+// ─── MES ────────────────────────────────────────────────────────────────────
+function prevMes(){mesActual=new Date(mesActual.getFullYear(),mesActual.getMonth()-1,1);render();}
+function nextMes(){mesActual=new Date(mesActual.getFullYear(),mesActual.getMonth()+1,1);render();}
+
+// ─── PDF ────────────────────────────────────────────────────────────────────
+function hexToRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+
+function exportarPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const hoy=new Date();
+  const lunes=new Date(hoy);lunes.setDate(hoy.getDate()-((hoy.getDay()+6)%7));
+  const domingo=new Date(lunes);domingo.setDate(lunes.getDate()+6);
+  const W=210,M=14;let y=M;
+  doc.setFillColor(127,119,221);doc.rect(0,0,W,18,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('Reservas de la semana',M,12);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(`${fmt(toStr(lunes))} – ${fmt(toStr(domingo))}`,W-M,12,{align:'right'});
+  y=26;
+  const resSem=reservas.filter(r=>{const e=new Date(r.entrada),s=new Date(r.salida);return e<=domingo&&s>lunes;});
+  const ing=resSem.filter(r=>r.estado!=='cancelada').reduce((s,r)=>s+Number(r.precio),0);
+  const cnt={confirmada:0,pendiente:0,cancelada:0,especial:0};
+  resSem.forEach(r=>{if(cnt[r.estado]!==undefined)cnt[r.estado]++;});
+  doc.setFillColor(245,245,250);doc.rect(M,y,W-M*2,18,'F');
+  doc.setTextColor(60,60,80);doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(`Total: ${resSem.length}  ·  Confirmadas: ${cnt.confirmada}  ·  Pendientes: ${cnt.pendiente}  ·  Especiales: ${cnt.especial}  ·  Canceladas: ${cnt.cancelada}`,M+4,y+7);
+  doc.text(`Ingresos estimados (sin canceladas): ${ing.toLocaleString('es-ES')} €`,M+4,y+14);
+  y+=24;
+  if(!resSem.length){doc.setTextColor(140,140,150);doc.text('No hay reservas esta semana.',M,y+8);}
+  else{
+    [...new Set(resSem.map(r=>r.aptId))].forEach(aptId=>{
+      const apt=apts.find(a=>a.id===aptId)||{nombre:'?',color:'#888'};
+      const ra=resSem.filter(r=>r.aptId===aptId);
+      const[cr,cg,cb]=hexToRgb(apt.color);
+      doc.setFillColor(cr,cg,cb);doc.rect(M,y,W-M*2,7,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+      doc.text(apt.nombre,M+3,y+5);y+=10;
+      const cols=[38,44,16,22,20,22];
+      doc.setFillColor(240,240,246);doc.rect(M,y,W-M*2,6,'F');
+      doc.setTextColor(80,80,110);doc.setFontSize(8);doc.setFont('helvetica','bold');
+      let cx=M+2;['Huésped','Fechas','Noches','Precio','Estado','Email'].forEach((h,i)=>{doc.text(h,cx,y+4.5);cx+=cols[i];});y+=7;
+      ra.forEach((r,ri)=>{
+        const rH=r.notas?11:6;
+        if(ri%2===0){doc.setFillColor(252,252,255);doc.rect(M,y,W-M*2,rH,'F');}
+        const n=Math.round((new Date(r.salida)-new Date(r.entrada))/86400000);
+        doc.setTextColor(40,40,60);doc.setFontSize(8);doc.setFont('helvetica','normal');
+        let cx2=M+2;
+        [r.huesped,`${fmt(r.entrada)} → ${fmt(r.salida)}`,`${n}`,`${Number(r.precio).toLocaleString('es-ES')} €`,ESTADOS[r.estado]?.label||r.estado,r.email||'-'].forEach((v,i)=>{doc.text(String(v),cx2,y+4.5);cx2+=cols[i];});
+        if(r.notas){doc.setTextColor(120,120,140);doc.setFontSize(7);doc.setFont('helvetica','italic');doc.text(`Nota: ${r.notas}`,M+4,y+9);y+=11;}else{y+=6;}
+      });
+      y+=5;
+    });
+  }
+  y+=3;doc.setDrawColor(200,200,214);doc.line(M,y,W-M,y);y+=5;
+  doc.setTextColor(160,160,180);doc.setFontSize(8);
+  doc.text(`Generado el ${hoy.toLocaleDateString('es-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`,M,y);
+  doc.save(`reservas-semana-${toStr(lunes)}.pdf`);
+}
+
+// ─── PWA INSTALL ────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').style.display='flex';
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-banner').style.display='none';
+  showToast('¡App instalada! 🎉');
+});
+function instalarPWA(){
+  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').style.display='none';});}
+  else{showToast('Usa "Añadir a inicio" del navegador');}
+}
+
+// ─── PWA MANIFEST (inline) ──────────────────────────────────────────────────
+const manifest={
+  name:"Mis Apartamentos",short_name:"MisApartamentos",start_url:".",
+  display:"standalone",background_color:"#0f0f1a",theme_color:"#1a1a2e",
+  description:"Gestión de apartamentos de alquiler",
+  icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a2e'/><text y='.9em' font-size='80'>🏠</text></svg>",sizes:"any",type:"image/svg+xml"}]
+};
+const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)closeModal(el.id);});
+});
+
+cargar();
+render();
+</script>
+</body>
+</html>
