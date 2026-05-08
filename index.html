@@ -162,7 +162,7 @@ label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px;letter-s
   <h1>🏠 Mis Apartamentos</h1>
   <div class="header-actions">
     <button class="btn-icon" onclick="exportarPDF()" title="Exportar PDF semana">📄</button>
-    <button class="btn-icon" onclick="openModal('modal-res')" title="Nueva reserva">＋</button>
+    <button class="btn-icon" onclick="openReservaModal(null)" title="Nueva reserva">＋</button>
   </div>
 </div>
 
@@ -502,13 +502,21 @@ function openModal(id){document.getElementById(id).classList.add('active');}
 function closeModal(id){document.getElementById(id).classList.remove('active');if(id==='modal-apts')setTab('inicio');}
 
 function openReservaModal(editId){
+  // Siempre rellenar select de apartamentos y limpiar formulario primero
   const sel=document.getElementById('res-apt');
   sel.innerHTML=apts.map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('');
-  document.getElementById('res-edit-id').value=editId||'';
-  document.getElementById('modal-res-titulo').textContent=editId?'Editar reserva':'Nueva reserva';
-  if(editId){
+  sel.selectedIndex=0;
+  // Reset siempre
+  document.getElementById('res-edit-id').value='';
+  document.getElementById('modal-res-titulo').textContent='Nueva reserva';
+  ['res-huesped','res-email','res-entrada','res-salida','res-precio','res-notas'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('res-estado').value='confirmada';
+  // Si es edición sobreescribir con datos reales
+  if(editId!=null){
     const r=reservas.find(x=>x.id===editId);
     if(r){
+      document.getElementById('res-edit-id').value=editId;
+      document.getElementById('modal-res-titulo').textContent='Editar reserva';
       sel.value=r.aptId;
       document.getElementById('res-huesped').value=r.huesped;
       document.getElementById('res-email').value=r.email||'';
@@ -518,9 +526,6 @@ function openReservaModal(editId){
       document.getElementById('res-estado').value=r.estado||'confirmada';
       document.getElementById('res-notas').value=r.notas||'';
     }
-  } else {
-    ['res-huesped','res-email','res-entrada','res-salida','res-precio','res-notas'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('res-estado').value='confirmada';
   }
   openModal('modal-res');
 }
